@@ -358,11 +358,11 @@
       render();
     }
 
-    function openCalc() {
+    openCalc = function() {
       isMenuOpen = false;
       currentStep = 10;
       render();
-    }
+    };
 
     function updateTokens(val) {
       tokenCount = Number(val);
