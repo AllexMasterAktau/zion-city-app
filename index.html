@@ -166,6 +166,15 @@ body {
     width: 100%;
     accent-color: #00F2FE;
     margin: 14px 0;
+    cursor: pointer;
+}
+.slider-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #64748B;
+    font-family: monospace;
+    margin-top: -6px;
 }
 .footer {
     text-align: center;
@@ -191,10 +200,14 @@ let currentStep = 1;
 let isMenuOpen = false;
 let tokenCount = 100;
 
+// Базовые параметры экономической модели экосистемы
 const totalTokens = 35000000;
-const annualTransactions = 31536000000;
+const modelTxPerSec = 1000;
+const secondsPerYear = 31536000;
+const annualTransactions = modelTxPerSec * secondsPerYear; // 31 536 000 000 операций/год при нагрузке 1 000 tx/s
 const avgFee = 0.20;
-const revenuePerToken = (annualTransactions * avgFee) / totalTokens;
+const annualNetworkPool = annualTransactions * avgFee; // $6 307 200 000 годовой поток комиссий модели
+const revenuePerToken = 180.20; // Базовая доходность $180,20 на 1 Altyn Token в расчётной модели (100 токенов = $18 020)
 
 const stepsData = [
     {
@@ -246,12 +259,12 @@ const stepsData = [
         badge: "Калькулятор",
         title: "Бухгалтерия заработка совладельца",
         isCalculator: true,
-        text: "Давайте обратимся к цифрам. При консервативной нагрузке всего в 1 000 транзакций/сек (31,5 млрд операций в год) и средней комиссии в $0,20 сеть генерирует $6,307 млрд в год. Разделив эту сумму на 35 млн токенов, мы получаем ровно $180,20 пассивного дохода на 1 Altyn Token в год. Имея базовый пакет в 100 токенов, ты получаешь $18 020 дивидендов ежегодно. Для старта доступны и частичные доли токена."
+        text: "В расчётной модели масштабирования мы берем нагрузку 1 000 транзакций/сек (31,536 млрд операций в год) и среднюю комиссию $0,20 — это $6,307 млрд годового потока сети. При эмиссии 35 млн токенов базовый расчёт даёт $180,20 на 1 Altyn Token в год, а пакет в 100 токенов соответствует $18 020 годового дохода. Двигай ползунок с шагом в 1 токен до 5 000 ALTYN, чтобы оценить расчёт для своего объёма."
     },
     {
         badge: "Масштабы",
         title: "Потенциал участия",
-        text: "Население России — 144,1 млн человек. Взрослое платежеспособное население (18+) составляет 2/3 — около 96 млн человек. Если на старте системой будут ежедневно пользоваться хотя бы 1-2% от этого числа, активная база составит от 960 000 до 1 920 000 человек. Это обеспечит постоянную нагрузку от 11 до 22 транзакций в секунду на старте с огромным потенциалом роста на весь рынок БРИКС+."
+        text: "В России около 96 млн взрослых жителей (из 144,1 млн населения). Если на этапе запуска ежедневно активны 1–2% этой аудитории (960 000 – 1 920 000 человек), базовая пользовательская нагрузка на старте составляет 11–22 транзакции/сек. Далее поток кратно растёт за счёт подключения малого и среднего бизнеса, маркетплейсов, автоматических сервисов и выхода на рынки ЕАЭС и БРИКС+ — до расчётного уровня 1 000 транзакций/сек."
     },
     {
         badge: "Твое будущее — твой выбор",
@@ -264,6 +277,11 @@ const stepsData = [
         text: "Мы не обещаем мгновенного богатства, а предлагаем сделать осознанный выбор и стать совладельцем цифровой экономики. Изучите материалы, оцените математику и присоединяйтесь к новой народной экономике ZION.CITY!"
     }
 ];
+
+function calculateAnnualIncome(tokens) {
+    const cleanTokens = Math.max(1, Math.min(5000, Math.round(Number(tokens) || 1)));
+    return Math.round(cleanTokens * revenuePerToken);
+}
 
 function render() {
     const area = document.getElementById('contentArea');
@@ -294,17 +312,24 @@ function render() {
     let calcHtml = "";
     
     if (item.isCalculator) {
-        const income = Math.round(tokenCount * revenuePerToken);
+        const income = calculateAnnualIncome(tokenCount);
         calcHtml = `
             <div class="slider-box">
                 <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px;">
-                    <span style="color:#94A3B8">Ваш пакет:</span>
-                    <span style="color:#00F2FE; font-weight:bold;">${tokenCount} ALTYN</span>
+                    <span style="color:#94A3B8">Ваш пакет (шаг 1 ALTYN):</span>
+                    <span id="tokenCountLabel" style="color:#00F2FE; font-weight:bold;">${tokenCount} ALTYN</span>
                 </div>
-                <input type="range" min="1" max="1000" value="${tokenCount}" oninput="updateTokens(this.value)" />
-                <div style="display: flex; justify-content: space-between; font-size: 14px; margin-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                <input id="tokenRange" type="range" min="1" max="5000" step="1" value="${tokenCount}" oninput="updateTokens(this.value)" />
+                <div class="slider-scale">
+                    <span>1</span>
+                    <span>1 250</span>
+                    <span>2 500</span>
+                    <span>3 750</span>
+                    <span>5 000</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 14px; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
                     <span style="color:#94A3B8">Прогноз доход/год:</span>
-                    <span style="color:#10B981; font-weight:900; font-size:17px;">$${income.toLocaleString()}</span>
+                    <span id="incomeValueLabel" style="color:#10B981; font-weight:900; font-size:17px;">$${income.toLocaleString('ru-RU')}</span>
                 </div>
             </div>
         `;
@@ -361,8 +386,16 @@ function openCalc() {
 }
 
 function updateTokens(val) {
-    tokenCount = Number(val);
-    render();
+    const parsed = Math.max(1, Math.min(5000, Math.round(Number(val) || 1)));
+    tokenCount = parsed;
+    const tokenLabel = document.getElementById('tokenCountLabel');
+    const incomeLabel = document.getElementById('incomeValueLabel');
+    if (tokenLabel && incomeLabel) {
+        tokenLabel.textContent = `${tokenCount} ALTYN`;
+        incomeLabel.textContent = `$${calculateAnnualIncome(tokenCount).toLocaleString('ru-RU')}`;
+    } else {
+        render();
+    }
 }
 
 if (window.Telegram?.WebApp) {
@@ -371,5 +404,7 @@ if (window.Telegram?.WebApp) {
 }
 render();
 </script>
+</body>
+</html>
 </body>
 </html>
