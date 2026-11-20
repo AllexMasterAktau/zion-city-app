@@ -156,16 +156,16 @@ body {
     cursor: pointer;
 }
 .slider-box {
-    background: rgba(10, 13, 20, 0.7);
+    background: rgba(10, 13, 20, 0.75);
     border: 1px solid rgba(0, 242, 254, 0.35);
-    padding: 16px;
+    padding: 15px;
     border-radius: 14px;
-    margin-top: 12px;
+    margin-top: 14px;
 }
 .slider-box input[type=range] {
     width: 100%;
     accent-color: #00F2FE;
-    margin: 14px 0;
+    margin: 12px 0;
     cursor: pointer;
 }
 .slider-scale {
@@ -174,7 +174,57 @@ body {
     font-size: 11px;
     color: #64748B;
     font-family: monospace;
-    margin-top: -6px;
+    margin-top: -4px;
+}
+.calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+.calc-input-wrap {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+}
+.calc-input {
+    width: 100%;
+    background: rgba(20, 25, 38, 0.95);
+    border: 1px solid rgba(0, 242, 254, 0.45);
+    border-radius: 10px;
+    padding: 9px 12px;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    outline: none;
+}
+.rate-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(255,255,255,0.12);
+    font-size: 11px;
+    color: #94A3B8;
+}
+.rate-input {
+    width: 78px;
+    background: rgba(20, 25, 38, 0.95);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 5px 8px;
+    color: #00F2FE;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: right;
+    outline: none;
 }
 .footer {
     text-align: center;
@@ -199,88 +249,110 @@ body {
 let currentStep = 1;
 let isMenuOpen = false;
 let tokenCount = 100;
+let buyTokenCount = 10;
 
-// Базовые параметры экономической модели экосистемы
+// Текущая ступень лестницы цен Altyn Token
+const currentTokenPriceUsd = 6.50;
+
+// Курс USD/RUB (автоматически обновляется при загрузке, с возможностью ручной правки)
+let usdRubRate = 98.0;
+let rateSourceLabel = "базовый ориентир";
+
+// Базовые параметры экономической модели доходности
 const totalTokens = 35000000;
 const modelTxPerSec = 1000;
 const secondsPerYear = 31536000;
-const annualTransactions = modelTxPerSec * secondsPerYear; // 31 536 000 000 операций/год при нагрузке 1 000 tx/s
+const annualTransactions = modelTxPerSec * secondsPerYear; // 31 536 000 000 операций/год
 const avgFee = 0.20;
-const annualNetworkPool = annualTransactions * avgFee; // $6 307 200 000 годовой поток комиссий модели
-const revenuePerToken = 180.20; // Базовая доходность $180,20 на 1 Altyn Token в расчётной модели (100 токенов = $18 020)
+const revenuePerToken = 180.20; // $180,20 на 1 Altyn Token в расчётной модели
 
 const stepsData = [
     {
         badge: "Главный архитектор",
-        title: "А ты хотел бы иметь дополнительный доход, который не зависит от твоей ежедневной работы?",
-        text: "Привет! Я Роберт — главный архитектор социально-финансово-экономической системы ZION.CITY. Сегодня я покажу тебе необычную экономическую модель, в которой участники получают пассивный доход от работы нашей цифровой инфраструктуры. Представь: пока ты занимаешься своими делами, твой суверенный актив участвует в реальном товарообороте и приносит постоянный доход."
+        title: "Хватит жить от зарплаты до зарплаты. Пусть актив работает на тебя",
+        text: "Привет! Я Роберт — главный архитектор ZION.CITY. Большинство людей тратят время и силы, но денег всё равно не хватает. Я покажу модель, где твой цифровой актив участвует в реальном обороте сети и приносит доход независимо от твоего графика."
     },
     {
         badge: "Концепция",
-        title: "А твои деньги могут работать вместо тебя и на тебя?",
-        text: "А что если твои деньги начнут работать на тебя без твоего постоянного участия? Вместо того чтобы быть просто потребителем чужих сервисов, ты становишься равноправным совладельцем цифровой среды. Ты живешь, путешествуешь и проводишь время с близкими, а принадлежащая тебе нода верифицирует транзакции сети и генерирует дивиденды."
+        title: "Деньги должны работать на тебя, а не забирать твоё время",
+        text: "В привычной жизни ты просто платишь сервисам и банкам, оставаясь сторонним зрителем. В ZION.CITY всё устроено иначе: твоя нода помогает проверять операции сети и приносит дивиденды, пока ты живёшь своей жизнью, работаешь или отдыхаешь с близкими."
     },
     {
         badge: "Проблема Web 2.0",
-        title: "В чём проблема современных платформ?",
-        text: "В чём главный изъян современных цифровых платформ? Мы создаём контент, совершаем покупки и переводы, но всю прибыль забрали монополии «золотого миллиарда». ZION.CITY меняет эти правила раз и навсегда. Мы устранили посредников и возвращаем 100% комиссии людям, поддерживающим сеть."
+        title: "Почему прибыль всегда уходит посредникам?",
+        text: "Обычные платформы зарабатывают на нашей активности, но всю маржу забирают крупные корпорации и банки. Мы убрали лишних посредников и перестроили правила: комиссии сети возвращаются тем, кто поддерживает её работу."
     },
     {
         badge: "Экосистема Web 4.0",
-        title: "Единая цифровая среда нового поколения",
-        text: "Мы создали суверенное пространство для жизни и бизнеса, разделенное на 8 функциональных модулей. Общение, покупки, ИИ-агент ERIC AI, госуслуги и финансы теперь находятся в одной удобной среде под контролем единого профиля. Никакой спам-рекламы и слежки — инфраструктура работает на безопасность и экономию ресурсов каждого участника."
+        title: "Один профиль вместо хаоса десятков приложений",
+        text: "ZION.CITY объединяет общение, покупки, ИИ-ассистента ERIC AI, документы и финансы в единой среде на 8 модулях. Никакой навязчивой рекламы и слежки — система бережёт твоё время, данные и деньги каждый день."
     },
     {
         badge: "Модель дохода",
-        title: "Принцип совладения инфраструктурой",
-        text: "Принцип совладения инфраструктурой прост и прозрачен. Каждый перевод, покупка или торговая операция в сети формирует небольшую комиссию (от 0,1% до 0,5%). Весь чистый доход платформы автоматически распределяется среди владельцев Altyn Token. Использование интернета становится твоим личным бизнесом."
+        title: "Как обычные операции превращаются в доход сети",
+        text: "Внутри экосистемы проходят переводы, покупки и бизнес-платежи с небольшой комиссией от 0,1% до 0,5%. Чистый комиссионный поток распределяется среди владельцев Altyn Token — так инфраструктура создаёт ценность для совладельцев."
     },
     {
         badge: "Altyn Token",
-        title: "Главный актив экосистемы",
-        text: "Altyn Token — это главный инфраструктурный актив всей экосистемы. Его эмиссия строго ограничена математическим алгоритмом — всего 35 000 000 единиц. Никакого печатного станка и инфляции. Владея токенами и размещая их в нодах, ты становишься «акционером цифрового центрального банка»."
+        title: "35 000 000 токенов — жёсткий лимит без инфляции",
+        text: "Эмиссия Altyn Token строго ограничена математикой — всего 35 млн единиц, допечатать их нельзя. Владея токеном в ноде, ты становишься совладельцем инфраструктуры и получаешь долю от сетевых комиссий."
     },
     {
         badge: "Источники",
-        title: "Откуда берутся деньги?",
-        text: "Наш источник дохода — не привлечение новых участников, как в пирамидах или МЛМ-схемах, а реальный товарооборот и платежи внутри инфраструктуры. Оплата товаров, услуг, трансграничные расчеты БРИКС+ и покупка ресурсов дают постоянный физический денежный поток."
+        title: "Откуда берутся деньги? Только реальный оборот",
+        text: "Здесь нет пирамид и «приведи друга ради выплат». Основа дохода — реальные покупки, оплата услуг, работа бизнеса и расчёты между странами ЕАЭС и БРИКС+. Пока есть оборот — есть и экономическая база."
     },
     {
         badge: "Два инструмента",
-        title: "Token & Coin",
-        text: "Мы разделили капитал и расчеты для абсолютной стабильности. Altyn Token — это недевальвируемый капитал (акция), дающий право на получение дивидендов со всех транзакций в сети. Altyn Coin — быстрая и стабильная монета без волатильности для повседневных расчетов, покупок, бизнеса и прочих платежей."
+        title: "Altyn Token для капитала, Altyn Coin для расчётов",
+        text: "Мы разделили функции, чтобы защитить систему от скачков. Altyn Token — инфраструктурный актив для участия в доходах сети. Altyn Coin — стабильная монета для ежедневных покупок, переводов и бизнеса без лишних банковских поборов."
     },
     {
         badge: "Экономика сети",
-        title: "Прозрачная математика и расчеты",
-        text: "В ZION.CITY мы строим экономику не на спекулятивных обещаниях, а на строгой математике и законодательном контуре РФ (ФЗ № 259-ФЗ о ЦФА). Система интегрирована с государственными стандартами и договоренностями со странами ЕАЭС, ШОС и БРИКС+. Токен работает как суверенный цифровой актив (ЦФА): держатели нод верифицируют транзакции и распределяют между собой 100% комиссионного потока."
+        title: "Надёжность на математике, коде и законе",
+        text: "Мы опираемся на расчёты, технологический альянс и правовые рамки РФ (ФЗ № 259-ФЗ о ЦФА) с ориентацией на стандарты ЕАЭС и БРИКС+. Никаких «волшебных кнопок» — только прозрачная архитектура и ответственность за каждую цифру."
     },
     {
-        badge: "Калькулятор",
-        title: "Бухгалтерия заработка совладельца",
-        isCalculator: true,
-        text: "В расчётной модели масштабирования мы берем нагрузку 1 000 транзакций/сек (31,536 млрд операций в год) и среднюю комиссию $0,20 — это $6,307 млрд годового потока сети. При эмиссии 35 млн токенов базовый расчёт даёт $180,20 на 1 Altyn Token в год, а пакет в 100 токенов соответствует $18 020 годового дохода. Двигай ползунок с шагом в 1 токен до 5 000 ALTYN, чтобы оценить расчёт для своего объёма."
+        badge: "Калькулятор доходности",
+        title: "Посчитай модель дохода на своём пакете",
+        isIncomeCalculator: true,
+        text: "Расчётная модель строится на нагрузке 1 000 транзакций/сек (31,536 млрд в год) и средней комиссии $0,20 — это $6,307 млрд годового потока сети. На 35 млн токенов базовый расчёт даёт $180,20 на 1 Altyn Token в год ($18 020 за 100 токенов). Двигай ползунок с шагом 1 ALTYN до 5 000."
     },
     {
-        badge: "Масштабы",
-        title: "Потенциал участия",
-        text: "В России около 96 млн взрослых жителей (из 144,1 млн населения). Если на этапе запуска ежедневно активны 1–2% этой аудитории (960 000 – 1 920 000 человек), базовая пользовательская нагрузка на старте составляет 11–22 транзакции/сек. Далее поток кратно растёт за счёт подключения малого и среднего бизнеса, маркетплейсов, автоматических сервисов и выхода на рынки ЕАЭС и БРИКС+ — до расчётного уровня 1 000 транзакций/сек."
+        badge: "Масштабы и расчёт пакета",
+        title: "От старта в 11–22 tx/s — к масштабу 1 000 tx/s",
+        isBuyCalculator: true,
+        text: "В РФ около 96 млн взрослых жителей: при ежедневной активности 1–2% (0,96–1,92 млн человек) на старте формируется 11–22 tx/s, а дальше нагрузка растёт за счёт бизнеса, сервисов и рынков ЕАЭС и БРИКС+ до 1 000 tx/s. Ниже можно прикинуть стоимость пакета по текущей ступени $6,50 за токен в рублях."
     },
     {
-        badge: "Твое будущее — твой выбор",
-        title: "Экосистема для жизни и свободы",
-        text: "ZION.CITY — это экосистема для реальной жизни, свободы и безопасности. Мы создали финансовый суверенитет, где технология бережет твое время и ресурсы для семьи, творчества и гармонии. Система работает в полном согласии с правовыми нормами, гарантируя сохранность и прозрачность твоего капитала."
+        badge: "Твоё будущее — твой выбор",
+        title: "Финансовое спокойствие начинается с порядка",
+        text: "Когда у человека есть понятный инструмент и прозрачные правила, появляется опора и свобода выбора. Мы создаём технологию, которая работает на созидание, безопасность и долгосрочную устойчивость семьи."
     },
     {
         badge: "Финал",
-        title: "Добро пожаловать в ZION.CITY!",
-        text: "Мы не обещаем мгновенного богатства, а предлагаем сделать осознанный выбор и стать совладельцем цифровой экономики. Изучите материалы, оцените математику и присоединяйтесь к новой народной экономике ZION.CITY!"
+        title: "Добро пожаловать в ZION.CITY",
+        text: "Мы не раздаём лёгких иллюзий — мы даём инструмент и открытую математику. Изучи меню, проверь расчёты и прими взвешенное решение: быть просто потребителем или стать совладельцем новой цифровой среды."
     }
 ];
 
 function calculateAnnualIncome(tokens) {
     const cleanTokens = Math.max(1, Math.min(5000, Math.round(Number(tokens) || 1)));
     return Math.round(cleanTokens * revenuePerToken);
+}
+
+function calculateBuyCost(tokens) {
+    const cleanTokens = Math.max(1, Math.min(5000, Math.round(Number(tokens) || 1)));
+    const usdTotal = cleanTokens * currentTokenPriceUsd;
+    const rubTotal = Math.round(usdTotal * usdRubRate);
+    return { cleanTokens, usdTotal, rubTotal };
+}
+
+function formatUsd(val) {
+    const num = Number(val) || 0;
+    return Number.isInteger(num)
+        ? `$${num.toLocaleString('ru-RU')}`
+        : `$${num.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function render() {
@@ -296,12 +368,13 @@ function render() {
                 </div>
                 <a href="https://zioncity.app" target="_blank" class="menu-item">🌐 1. Регистрация в ZION.CITY <span>→</span></a>
                 <div class="menu-item" onclick="openCalc()">📊 2. Калькулятор доходности <span>Открыть</span></div>
-                <a href="https://apps.apple.com/kz/app/zion-city/id6802460387?l=ru" target="_blank" class="menu-item">🍏 3. Скачать для iOS <span>App Store</span></a>
-                <div class="menu-item" onclick="alert('Приложение для Android находится на проверке в Google Play')">🤖 4. Скачать для Android <span>На проверке</span></div>
-                <a href="https://www.youtube.com/watch?v=BpijzlycmGg&list=PLdBEtP9Ov1XE" target="_blank" class="menu-item">▶️ 5. База знаний <span>YouTube</span></a>
-                <a href="https://youtu.be/OunuFi8VwbU?si=KDzN1k9kpLZjdkoS" target="_blank" class="menu-item">📺 6. Валюта ЕАЭС <span>Video</span></a>
-                <a href="https://zion-tech-portal.vercel.app/" target="_blank" class="menu-item">🎓 7. Академия ZION.CITY <span>открывать на ПК</span></a>
-                <a href="https://t.me/AllexMaster" target="_blank" class="menu-item">💬 8. Задать вопрос <span>Написать</span></a>
+                <div class="menu-item" onclick="openBuyCalc()">💳 3. Расчёт стоимости пакета <span>Открыть</span></div>
+                <a href="https://apps.apple.com/kz/app/zion-city/id6802460387?l=ru" target="_blank" class="menu-item">🍏 4. Скачать для iOS <span>App Store</span></a>
+                <div class="menu-item" onclick="alert('Приложение для Android находится на проверке в Google Play')">🤖 5. Скачать для Android <span>На проверке</span></div>
+                <a href="https://www.youtube.com/watch?v=BpijzlycmGg&list=PLdBEtP9Ov1XE" target="_blank" class="menu-item">▶️ 6. База знаний <span>YouTube</span></a>
+                <a href="https://youtu.be/OunuFi8VwbU?si=KDzN1k9kpLZjdkoS" target="_blank" class="menu-item">📺 7. Валюта ЕАЭС <span>Video</span></a>
+                <a href="https://zion-tech-portal.vercel.app/" target="_blank" class="menu-item">🎓 8. Академия ZION.CITY <span>открывать на ПК</span></a>
+                <a href="https://t.me/AllexMaster" target="_blank" class="menu-item">💬 9. Задать вопрос <span>Написать</span></a>
             </div>
         `;
         return;
@@ -311,11 +384,11 @@ function render() {
     const item = stepsData[currentStep - 1];
     let calcHtml = "";
     
-    if (item.isCalculator) {
+    if (item.isIncomeCalculator) {
         const income = calculateAnnualIncome(tokenCount);
         calcHtml = `
             <div class="slider-box">
-                <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
                     <span style="color:#94A3B8">Ваш пакет (шаг 1 ALTYN):</span>
                     <span id="tokenCountLabel" style="color:#00F2FE; font-weight:bold;">${tokenCount} ALTYN</span>
                 </div>
@@ -327,9 +400,40 @@ function render() {
                     <span>3 750</span>
                     <span>5 000</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; font-size: 14px; margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                <div class="calc-row">
                     <span style="color:#94A3B8">Прогноз доход/год:</span>
                     <span id="incomeValueLabel" style="color:#10B981; font-weight:900; font-size:17px;">$${income.toLocaleString('ru-RU')}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    if (item.isBuyCalculator) {
+        const cost = calculateBuyCost(buyTokenCount);
+        calcHtml = `
+            <div class="slider-box">
+                <div style="display: flex; justify-content: space-between; font-size: 13px;">
+                    <span style="color:#94A3B8">Ступень цены: <b>$6,50</b> / ALTYN</span>
+                    <span id="buyTokensLabel" style="color:#00F2FE; font-weight:bold;">${cost.cleanTokens} ALTYN</span>
+                </div>
+                <div class="calc-input-wrap">
+                    <input id="buyTokensInput" class="calc-input" type="number" min="1" max="5000" step="1" value="${cost.cleanTokens}" oninput="updateBuyTokens(this.value)" placeholder="Кол-во токенов" />
+                </div>
+                <input id="buyTokensRange" type="range" min="1" max="5000" step="1" value="${cost.cleanTokens}" oninput="updateBuyTokens(this.value)" />
+                <div class="calc-row">
+                    <span style="color:#94A3B8">Сумма в USD:</span>
+                    <span id="buyUsdLabel" style="color:#F8FAFC; font-weight:800; font-size:15px;">${formatUsd(cost.usdTotal)}</span>
+                </div>
+                <div class="calc-row">
+                    <span style="color:#94A3B8">К оплате в рублях:</span>
+                    <span id="buyRubLabel" style="color:#10B981; font-weight:900; font-size:17px;">${cost.rubTotal.toLocaleString('ru-RU')} ₽</span>
+                </div>
+                <div class="rate-bar">
+                    <span id="rateInfoLabel">Курс USD/RUB (${rateSourceLabel}):</span>
+                    <div>
+                        <input id="usdRateInput" class="rate-input" type="number" min="1" max="500" step="0.1" value="${usdRubRate}" oninput="updateUsdRate(this.value)" />
+                        <span style="margin-left:4px;">₽</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -385,6 +489,12 @@ function openCalc() {
     render();
 }
 
+function openBuyCalc() {
+    isMenuOpen = false;
+    currentStep = 11;
+    render();
+}
+
 function updateTokens(val) {
     const parsed = Math.max(1, Math.min(5000, Math.round(Number(val) || 1)));
     tokenCount = parsed;
@@ -398,13 +508,86 @@ function updateTokens(val) {
     }
 }
 
+function refreshBuyCalculatorUi(syncInputs = false) {
+    const cost = calculateBuyCost(buyTokenCount);
+    const labelEl = document.getElementById('buyTokensLabel');
+    const usdEl = document.getElementById('buyUsdLabel');
+    const rubEl = document.getElementById('buyRubLabel');
+    const rateInfoEl = document.getElementById('rateInfoLabel');
+
+    if (labelEl) labelEl.textContent = `${cost.cleanTokens} ALTYN`;
+    if (usdEl) usdEl.textContent = formatUsd(cost.usdTotal);
+    if (rubEl) rubEl.textContent = `${cost.rubTotal.toLocaleString('ru-RU')} ₽`;
+    if (rateInfoEl) rateInfoEl.textContent = `Курс USD/RUB (${rateSourceLabel}):`;
+
+    if (syncInputs) {
+        const numInput = document.getElementById('buyTokensInput');
+        const rangeInput = document.getElementById('buyTokensRange');
+        const rateInput = document.getElementById('usdRateInput');
+        if (numInput && document.activeElement !== numInput) numInput.value = cost.cleanTokens;
+        if (rangeInput) rangeInput.value = cost.cleanTokens;
+        if (rateInput && document.activeElement !== rateInput) rateInput.value = usdRubRate;
+    }
+}
+
+function updateBuyTokens(val) {
+    if (val === "" || val === null || val === undefined) {
+        const usdEl = document.getElementById('buyUsdLabel');
+        const rubEl = document.getElementById('buyRubLabel');
+        if (usdEl) usdEl.textContent = "$0";
+        if (rubEl) rubEl.textContent = "0 ₽";
+        return;
+    }
+    const parsed = Math.max(1, Math.min(5000, Math.round(Number(val) || 1)));
+    buyTokenCount = parsed;
+    refreshBuyCalculatorUi(true);
+}
+
+function updateUsdRate(val) {
+    const num = Number(val);
+    if (!Number.isFinite(num) || num <= 0) return;
+    usdRubRate = Math.round(num * 100) / 100;
+    rateSourceLabel = "вручную";
+    refreshBuyCalculatorUi(false);
+}
+
+async function fetchUsdRubRate() {
+    try {
+        const res = await fetch("https://open.er-api.com/v6/latest/USD");
+        if (!res.ok) throw new Error("er-api error");
+        const data = await res.json();
+        const rub = Number(data?.rates?.RUB);
+        if (Number.isFinite(rub) && rub > 10) {
+            usdRubRate = Math.round(rub * 100) / 100;
+            rateSourceLabel = "авто-курс";
+            refreshBuyCalculatorUi(true);
+            return;
+        }
+    } catch (e) {
+        // Резервный источник курса
+    }
+
+    try {
+        const res2 = await fetch("https://api.frankfurter.app/latest?from=USD&to=RUB");
+        if (!res2.ok) throw new Error("frankfurter error");
+        const data2 = await res2.json();
+        const rub2 = Number(data2?.rates?.RUB);
+        if (Number.isFinite(rub2) && rub2 > 10) {
+            usdRubRate = Math.round(rub2 * 100) / 100;
+            rateSourceLabel = "авто-курс";
+            refreshBuyCalculatorUi(true);
+        }
+    } catch (e2) {
+        // Оставляем базовый курс при офлайне
+    }
+}
+
 if (window.Telegram?.WebApp) {
     window.Telegram.WebApp.ready();
     window.Telegram.WebApp.expand();
 }
 render();
+fetchUsdRubRate();
 </script>
-</body>
-</html>
 </body>
 </html>
